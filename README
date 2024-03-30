@@ -3,12 +3,12 @@ observer
 
 It keeps track of websites, and notifies the user on specified updates.
 
-usage
------
+note-to-self
+------------
 
-observer -a <anime name>
-
-note
-----
-
-- Make sure the <anime name> is same as that on the site
+- should add to crontab
+- should write a setup script.
+- currently:
+    .env           ->  home dir
+    obs-anime      -> .local/bin
+    bookmarks.json -> .local/bin
