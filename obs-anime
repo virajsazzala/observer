@@ -1,6 +1,8 @@
 #!/bin/bash
 
-source .env
+ENV_PATH="$HOME/.env"
+
+source "$ENV_PATH"
 
 # parse animepahe json
 JSON_DATA=$(curl -s -H "Accept: application/json, text/javascript, */*; q=0.01" \
@@ -10,7 +12,7 @@ JSON_DATA=$(curl -s -H "Accept: application/json, text/javascript, */*; q=0.01" 
 content_len=$(($(jq -r '.per_page' <<< "$JSON_DATA") - 1))
 
 # parse bookmarks
-BOOKMARKS=$(<bookmarks.json)
+BOOKMARKS=$(<$HOME/.local/bin/bookmarks.json)
 mapfile -t anime_names < <(jq -r '.[] | .anime_name' <<< "$BOOKMARKS")
 mapfile -t episodes < <(jq -r '.[] | .eps' <<< "$BOOKMARKS")
 
@@ -34,9 +36,9 @@ for i in $(seq 0 "$content_len"); do
             # send notification to telegram
             curl -s -X POST https://api.telegram.org/bot$OBSANIME_BOT_TOKEN/sendMessage -d chat_id=$MYCHATID -d text="$message" > /dev/null
             # update ep for observing
-            epsinc=$((eps + 0))
+            epsinc=$((eps + 1))
             json_update=$(jq --argjson j "$j" --arg epsinc "$epsinc" 'to_entries | .[$j].value.eps = ($epsinc | tonumber) | from_entries' <<< "$BOOKMARKS")
-            echo "$json_update" > bookmarks.json
+            echo "$json_update" > $HOME/.local/bin/bookmarks.json
         fi
     done
 done
