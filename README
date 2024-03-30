@@ -1,0 +1,14 @@
+observer
+========
+
+It keeps track of websites, and notifies the user on specified updates.
+
+usage
+-----
+
+observer -a <anime name>
+
+note
+----
+
+- Make sure the <anime name> is same as that on the site

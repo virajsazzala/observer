@@ -1,0 +1,43 @@
+#!/bin/bash
+
+source .env
+
+# parse animepahe json
+JSON_DATA=$(curl -s -H "Accept: application/json, text/javascript, */*; q=0.01" \
+    -H "Cookie: $ANIME_COOKIE" \
+    -X GET $ANIME_SITE_API)
+
+content_len=$(($(jq -r '.per_page' <<< "$JSON_DATA") - 1))
+
+# parse bookmarks
+BOOKMARKS=$(<bookmarks.json)
+mapfile -t anime_names < <(jq -r '.[] | .anime_name' <<< "$BOOKMARKS")
+mapfile -t episodes < <(jq -r '.[] | .eps' <<< "$BOOKMARKS")
+
+bookm_len=$(($(jq length <<< "$BOOKMARKS") - 1))
+
+# parse through each entry
+for i in $(seq 0 "$content_len"); do
+    # find the title
+    anime=$(jq -r ".data[$i].anime_title" <<< "$JSON_DATA")
+    episode=$(jq -r ".data[$i].episode" <<< "$JSON_DATA")
+
+    # verify if new ep
+    for j in $(seq 0 "$bookm_len"); do
+        anime_name=${anime_names[$j]}
+        eps=${episodes[$j]}
+        if [[ "${anime,,}" == "${anime_name,,}" ]] && [ "$episode" -eq "$eps" ]; then
+            # send notification on linux pc
+            message=$(echo "Episode $eps of $anime_name is out NOW!")
+            notify-send "$message"
+            
+            # send notification to telegram
+            curl -s -X POST https://api.telegram.org/bot$OBSANIME_BOT_TOKEN/sendMessage -d chat_id=$MYCHATID -d text="$message" > /dev/null
+            # update ep for observing
+            epsinc=$((eps + 0))
+            json_update=$(jq --argjson j "$j" --arg epsinc "$epsinc" 'to_entries | .[$j].value.eps = ($epsinc | tonumber) | from_entries' <<< "$BOOKMARKS")
+            echo "$json_update" > bookmarks.json
+        fi
+    done
+done
+
